@@ -1,0 +1,133 @@
+#include <iostream>
+#include "E101.h"
+class Robot {
+  public:
+  int InitHardware();
+  void ReadSetMotors();
+  void SetMotors();
+  void q1();
+  void q2();
+  void q3();
+  void q4();
+  void openGate();
+  int v_left, v_right, cam_tilt;
+  int v_left_go = 48;
+  int v_right_go = 48;
+  int cam_width = 320;
+  int cam_height = 240;
+  double kp = 0.05;
+  bool left = false;
+  double line_error;
+};
+
+void Robot::q1() {
+  InitHardware();
+  openGate();
+};
+
+void Robot::q2() {
+  int quadrant2 = 0;
+ //This is a loop which does my calculation and goes on forever as I was only coding up to Quadrant 2 and the code partially worked through Quadrant 3 (I ran out of time as the only coder) I could just perpetually loop it with no reprecussions
+  while (quadrant2 == 0) {
+    take_picture();
+    update_screen();
+    line_error = 0;
+    double darknessCalc = 0;
+    int loopCounter = 0;
+    for (int col = 0; col < 320; col++) {
+      darknessCalc = ((int) get_pixel(120, col, 0) + (int) get_pixel(120, col, 1) + (int) get_pixel(120, col, 2)) / 3;
+      printf("%f \n", darknessCalc);
+
+      if (darknessCalc < 85) { //after testing this in lab 3 to print out values I found that 85 to be a good value 
+        line_error = line_error + col - 160;
+        loopCounter++; //iteration 
+
+        if (loopCounter > 320) {
+          left = true;
+        } else if (loopCounter < 100) {
+          left = false;
+        }
+      }
+    }
+
+    if (line_error != 0) {
+      line_error = line_error / (loopCounter); //line error calculation
+		printf("%f \n",line_error);
+    }
+
+  //Three Movement Scenarios - Move Right, Move Left, Go Forward
+
+  if (left == false) {
+    if (line_error > 0) {
+      v_right = 48;
+      v_left = 55;
+      printf("Turning right \n");
+    }
+     else if (line_error < 0) {
+      v_left = 48;
+      v_right = 35;
+      printf("Turning left \n");
+    } 
+    else {
+      v_left = 43;
+      v_right = 53; 
+      printf("Turning forward \n");
+    }
+    //Setting motor Function per the Loop
+    SetMotors(); 
+    sleep1(50);
+  }
+ }
+};
+
+void Robot::q3() {
+
+};
+
+void Robot::q4() {
+
+};
+
+
+int Robot::InitHardware() {
+  init(0);
+  open_screen_stream();
+  return 0;
+};
+
+void Robot::SetMotors() {
+  set_motors(5, v_left);
+  set_motors(1, v_right);
+  //printf("motors \n");
+  hardware_exchange();
+};
+
+void Robot::openGate() {
+  int i = 0;
+  //This was looped as our robot was slow out of the gate
+  while (i < 75) {
+    char server_addr[15] = "130.195.6.196";
+    connect_to_server(server_addr, 1024);
+    char password[24];
+    char message[24] = "Please";
+    send_to_server(message);
+    receive_from_server(password);
+    send_to_server(password);
+    v_left = 43;
+    v_right = 53;
+    SetMotors();
+    hardware_exchange();
+    i++;
+  }
+}
+
+int main() {
+  Robot robot;
+  robot.q1();
+  robot.q2();
+  robot.q3();
+  robot.q4();
+  close_screen_stream();
+  stoph();
+  return 0;
+}
